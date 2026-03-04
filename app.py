@@ -211,7 +211,7 @@ st.sidebar.markdown(
     f"**比較期間**: {prev_from.strftime('%Y/%m/%d')} ~ {prev_to.strftime('%Y/%m/%d')}"
 )
 
-# ─── OAuth デバッグ（一時的） ─────────────────────────────
+# ─── OAuth デバッグ ───────────────────────────────────────
 with st.sidebar.expander("OAuth デバッグ", expanded=False):
     def _mask(val: str) -> str:
         if not val:
@@ -226,13 +226,38 @@ with st.sidebar.expander("OAuth デバッグ", expanded=False):
     _dev = os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN", "")
     _login = os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "")
 
+    # 正しい認証情報のフィンガープリント（ローカルで動作確認済みの値）
+    _expected = {
+        "client_id_prefix": "719793862584-is2025o",
+        "secret_prefix": "GOCSPX-gtG",
+        "token_prefix": "1//0eNhp-C",
+        "client_id_len": 72,
+        "secret_len": 35,
+        "token_len": 103,
+    }
+
+    # 一致チェック
+    _id_ok = _cid.startswith(_expected["client_id_prefix"]) and len(_cid) == _expected["client_id_len"]
+    _sec_ok = _csec.startswith(_expected["secret_prefix"]) and len(_csec) == _expected["secret_len"]
+    _tok_ok = _rtok.startswith(_expected["token_prefix"]) and len(_rtok) == _expected["token_len"]
+
+    if _id_ok and _sec_ok and _tok_ok:
+        st.success("認証情報: ローカル動作確認済みの値と一致")
+    else:
+        st.error("認証情報がローカルと不一致！ Secrets を更新してください")
+        if not _id_ok:
+            st.warning(f"CLIENT_ID が不一致 (期待: {_expected['client_id_prefix']}... len={_expected['client_id_len']})")
+        if not _sec_ok:
+            st.warning(f"CLIENT_SECRET が不一致 (期待: {_expected['secret_prefix']}... len={_expected['secret_len']})")
+        if not _tok_ok:
+            st.warning(f"REFRESH_TOKEN が不一致 (期待: {_expected['token_prefix']}... len={_expected['token_len']})")
+
     st.code(
         f"CLIENT_ID:        {_mask(_cid)} (len={len(_cid)})\n"
         f"CLIENT_SECRET:    {_mask(_csec)} (len={len(_csec)})\n"
         f"REFRESH_TOKEN:    {_mask(_rtok)} (len={len(_rtok)})\n"
         f"DEVELOPER_TOKEN:  {_mask(_dev)} (len={len(_dev)})\n"
         f"LOGIN_CUSTOMER_ID: {_login}\n"
-        f"YAML_CONFIG_PATH: {os.environ.get('GOOGLE_ADS_CONFIGURATION_FILE_PATH', '(未設定)')}\n"
         f"HOME:             {os.path.expanduser('~')}\n"
         f"google-ads.yaml存在: {os.path.exists(os.path.expanduser('~/google-ads.yaml'))}",
         language=None,

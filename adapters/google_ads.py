@@ -4,6 +4,7 @@ import logging
 import os
 from typing import Optional
 
+import requests as _requests
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
 
@@ -13,6 +14,43 @@ logger = logging.getLogger(__name__)
 
 # google-ads ライブラリが google-ads.yaml を自動検出しないよう明示的に防止
 os.environ.setdefault("GOOGLE_ADS_CONFIGURATION_FILE_PATH", "")
+
+
+def _validate_refresh_token(client_id: str, client_secret: str, refresh_token: str):
+    """リフレッシュトークンが有効か事前に検証（invalid_grant を分かりやすいエラーにする）"""
+    resp = _requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "grant_type": "refresh_token",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+        },
+        timeout=10,
+    )
+    if resp.status_code == 200:
+        return
+    data = resp.json()
+    error = data.get("error", "")
+    desc = data.get("error_description", "")
+    if error == "invalid_grant":
+        raise RuntimeError(
+            f"OAuth invalid_grant エラー: リフレッシュトークンが無効です。\n"
+            f"原因: (1) トークンが失効（OAuth同意画面が「テスト」モードだと7日で失効）"
+            f" (2) トークンが別のClient IDで発行された"
+            f" (3) トークンが取り消された\n"
+            f"CLIENT_ID: {client_id[:20]}...{client_id[-10:]}\n"
+            f"REFRESH_TOKEN: {refresh_token[:10]}...{refresh_token[-6:]}\n"
+            f"対処: 正しいClient ID/Secretで新しいリフレッシュトークンを取得してください"
+        )
+    elif error == "invalid_client":
+        raise RuntimeError(
+            f"OAuth invalid_client エラー: Client IDまたはSecretが間違っています。\n"
+            f"CLIENT_ID: {client_id[:20]}...{client_id[-10:]}\n"
+            f"SECRET prefix: {client_secret[:8]}..."
+        )
+    else:
+        raise RuntimeError(f"OAuth エラー: {error} — {desc}")
 
 
 def _get_client() -> GoogleAdsClient:
@@ -36,6 +74,9 @@ def _get_client() -> GoogleAdsClient:
         "Google Ads OAuth: client_id=%s...%s (len=%d)",
         client_id[:8], client_id[-4:], len(client_id),
     )
+
+    # google-ads ライブラリを呼ぶ前にトークンを事前検証
+    _validate_refresh_token(client_id, client_secret, refresh_token)
 
     return GoogleAdsClient.load_from_dict({
         "developer_token": os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"].strip(),
