@@ -15,8 +15,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-st.write("DEBUG CLIENT_ID:", os.environ.get("GOOGLE_ADS_CLIENT_ID", "NOT SET")[:20])
-# from config import get_adapters (lazy)
 
 # ─── ページ設定 ───────────────────────────────────────────
 st.set_page_config(
@@ -27,15 +25,6 @@ st.set_page_config(
 )
 st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
 
-# ─── Secrets → 環境変数 ───
-import os as _os
-try:
-    for _k, _v in st.secrets.items():
-        if isinstance(_v, str):
-            _os.environ[_k] = _v
-except Exception:
-    pass
-st.write("DEBUG CLIENT_ID:", os.environ.get("GOOGLE_ADS_CLIENT_ID", "NOT SET")[:20])
 from config import get_adapters
 
 # ─── パスワード認証 ───────────────────────────────────────
@@ -84,15 +73,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Secrets → 環境変数 ───
-import os as _os
-try:
-    for _k, _v in st.secrets.items():
-        if isinstance(_v, str):
-            _os.environ[_k] = _v
-except Exception:
-    pass
-st.write("DEBUG CLIENT_ID:", os.environ.get("GOOGLE_ADS_CLIENT_ID", "NOT SET")[:20])
 from config import get_adapters
 
 
