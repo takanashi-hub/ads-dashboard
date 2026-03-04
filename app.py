@@ -27,6 +27,15 @@ st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True
 
 # ─── パスワード認証 ───────────────────────────────────────
 import hashlib
+# ─── Secrets → 環境変数に変換 ───────────────────────────
+import os
+try:
+    for key, value in st.secrets.items():
+        if isinstance(value, str):
+            os.environ[key] = value
+except Exception:
+    pass
+
 def check_password():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
@@ -40,6 +49,15 @@ def check_password():
         else:
             st.error("パスワードが正しくありません")
     st.stop()
+
+# ─── Secrets → 環境変数に変換 ───────────────────────────
+import os
+try:
+    for key, value in st.secrets.items():
+        if isinstance(value, str):
+            os.environ[key] = value
+except Exception:
+    pass
 
 check_password()
 
