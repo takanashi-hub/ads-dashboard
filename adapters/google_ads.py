@@ -12,8 +12,8 @@ from adapters.base import AdsAdapter
 
 logger = logging.getLogger(__name__)
 
-# google-ads ライブラリが google-ads.yaml を自動検出しないよう明示的に防止
-os.environ.setdefault("GOOGLE_ADS_CONFIGURATION_FILE_PATH", "")
+# google-ads ライブラリが google-ads.yaml を自動検出しないよう強制的に無効化
+os.environ["GOOGLE_ADS_CONFIGURATION_FILE_PATH"] = ""
 
 
 def _validate_refresh_token(client_id: str, client_secret: str, refresh_token: str):
