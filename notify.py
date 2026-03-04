@@ -1,0 +1,147 @@
+"""Slack通知エンドポイント（Flask）"""
+
+import json
+import logging
+from datetime import datetime, timedelta
+
+import pytz
+import requests
+from flask import Flask, jsonify, request
+
+from config import get_adapters
+from formatter import format_daily_report, format_campaign_breakdown
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+
+JST = pytz.timezone("Asia/Tokyo")
+
+
+def _get_slack_webhook_url() -> str:
+    import os
+    url = os.environ.get("SLACK_WEBHOOK_URL", "")
+    if not url:
+        raise RuntimeError("環境変数 SLACK_WEBHOOK_URL が設定されていません")
+    return url
+
+
+def _aggregate_daily(metrics: list[dict]) -> dict:
+    """日別メトリクスを1日分に集約"""
+    spend = sum(m.get("spend", 0) for m in metrics)
+    conversions = sum(m.get("conversions", 0) for m in metrics)
+    revenue = sum(m.get("revenue", 0) for m in metrics)
+    cpa = spend / conversions if conversions > 0 else 0.0
+    roas = revenue / spend if spend > 0 else 0.0
+    return {
+        "spend": round(spend, 2),
+        "conversions": conversions,
+        "revenue": round(revenue, 2),
+        "cpa": round(cpa, 2),
+        "roas": round(roas, 2),
+    }
+
+
+def _find_best_campaign(campaigns: list[dict]) -> dict | None:
+    """CVが1件以上あるキャンペーンのうち、CPAが最も低いものを返す"""
+    eligible = [c for c in campaigns if c.get("conversions", 0) > 0]
+    if not eligible:
+        return None
+    return min(eligible, key=lambda c: c.get("cpa", float("inf")))
+
+
+def _build_report(target_date: str) -> list[str]:
+    """各プラットフォームのレポートテキストを生成"""
+    adapters = get_adapters()
+    dt = datetime.strptime(target_date, "%Y-%m-%d")
+    prev_date = (dt - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    reports = []
+    for adapter in adapters:
+        try:
+            today_metrics = adapter.fetch_daily_metrics(target_date, target_date)
+            yesterday_metrics = adapter.fetch_daily_metrics(prev_date, prev_date)
+            campaigns = adapter.fetch_campaigns(target_date, target_date)
+
+            today_data = _aggregate_daily(today_metrics)
+            yesterday_data = _aggregate_daily(yesterday_metrics) if yesterday_metrics else None
+            best = _find_best_campaign(campaigns)
+
+            report = format_daily_report(
+                platform_name=adapter.platform_name(),
+                today_data=today_data,
+                yesterday_data=yesterday_data,
+                best_campaign=best,
+                report_date=target_date,
+            )
+            # 費用0円のアカウントはスキップ（稼働再開で自動復帰）
+            total_spend = sum(c.get("spend", 0) for c in campaigns)
+            if total_spend == 0:
+                import logging
+                logging.getLogger(__name__).info(f"{adapter.platform_name()}: 費用0のためスキップ")
+                continue
+
+            reports.append(report)
+
+            # Google広告の場合はキャンペーン別内訳も追加
+            if "Google広告" in adapter.platform_name():
+                breakdown = format_campaign_breakdown(campaigns, target_date)
+                if breakdown:
+                    reports.append(breakdown)
+        except Exception as e:
+            logger.error(f"{adapter.platform_name()} のレポート生成に失敗: {e}")
+            reports.append(f"⚠️ {adapter.platform_name()}: レポート生成エラー - {e}")
+
+    return reports
+
+
+def _post_to_slack(text: str) -> bool:
+    """SlackにWebhookで投稿"""
+    webhook_url = _get_slack_webhook_url()
+    resp = requests.post(
+        webhook_url,
+        json={"text": text},
+        headers={"Content-Type": "application/json"},
+        timeout=30,
+    )
+    if resp.status_code != 200:
+        logger.error(f"Slack投稿失敗: {resp.status_code} {resp.text}")
+        return False
+    return True
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"ok": True})
+
+
+@app.route("/notify", methods=["POST"])
+def notify():
+    body = request.get_json(silent=True) or {}
+    target_date = body.get("date")
+
+    if not target_date:
+        now = datetime.now(JST)
+        target_date = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    logger.info(f"レポート生成開始: {target_date}")
+
+    try:
+        reports = _build_report(target_date)
+        full_text = "\n\n".join(reports)
+        success = _post_to_slack(full_text)
+
+        if success:
+            logger.info("Slack投稿完了")
+            return jsonify({"ok": True, "date": target_date, "message": "投稿完了"})
+        else:
+            return jsonify({"ok": False, "date": target_date, "message": "Slack投稿失敗"}), 500
+
+    except Exception as e:
+        logger.exception("レポート生成/投稿エラー")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080, debug=True)

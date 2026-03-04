@@ -1,0 +1,46 @@
+"""設定・プラットフォーム切り替え"""
+
+import os
+
+# KADASONスカルプシャンプー関連の全商品ID（定期・セット・プロモーション含む）
+KADASON_SHAMPOO_PRODUCT_IDS = [
+    "72215", "60217", "60216", "60215", "44215", "40215",
+    "32217", "32216", "32215", "28216", "8219",
+    "182", "165", "164", "148", "147", "146", "144", "142", "141",
+    "98", "97", "63", "62", "61", "53", "44", "40", "39", "38", "19",
+]
+
+from adapters.meta import MetaAdsAdapter
+from adapters.google_ads import GoogleAdsAdapter
+
+ADAPTER_MAP = {
+    "meta": MetaAdsAdapter,
+    "google_ads": GoogleAdsAdapter,
+}
+
+
+def get_enabled_platforms() -> list[str]:
+    """有効なプラットフォーム名のリストを返す"""
+    raw = os.environ.get("ENABLED_PLATFORMS", "meta")
+    return [p.strip() for p in raw.split(",") if p.strip()]
+
+
+def get_adapters() -> list:
+    """有効なアダプターのインスタンスをリストで返す"""
+    platforms = get_enabled_platforms()
+    adapters = []
+    for name in platforms:
+        cls = ADAPTER_MAP.get(name)
+        if cls:
+            adapters.append(cls())
+        else:
+            raise ValueError(f"不明なプラットフォーム: {name}")
+    return adapters
+
+
+def get_ecforce_client():
+    """ECFORCE_API_TOKEN設定時のみクライアント返却、未設定時None"""
+    if not os.environ.get("ECFORCE_API_TOKEN"):
+        return None
+    from adapters.ecforce import EcforceClient
+    return EcforceClient(product_ids=KADASON_SHAMPOO_PRODUCT_IDS)

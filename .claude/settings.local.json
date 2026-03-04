@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip3 install:*)",
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(export META_AD_ACCOUNT_ID=\"act_374762540327537\")",
+      "Bash(export ENABLED_PLATFORMS=\"meta\")",
+      "Bash(export TZ=\"Asia/Tokyo\")",
+      "Bash(export SLACK_WEBHOOK_URL=\"https://hooks.slack.com/services/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\")",
+      "Bash(streamlit run:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(curl:*)",
+      "Bash(gcloud services enable:*)"
+    ]
+  }
+}
