@@ -11,6 +11,9 @@ from adapters.base import AdsAdapter
 
 logger = logging.getLogger(__name__)
 
+# google-ads ライブラリが google-ads.yaml を自動検出しないよう明示的に防止
+os.environ.setdefault("GOOGLE_ADS_CONFIGURATION_FILE_PATH", "")
+
 
 def _get_client() -> GoogleAdsClient:
     """環境変数からGoogle Ads APIクライアントを生成"""
@@ -25,12 +28,21 @@ def _get_client() -> GoogleAdsClient:
     if missing:
         raise RuntimeError(f"環境変数が未設定: {', '.join(missing)}")
 
+    client_id = os.environ["GOOGLE_ADS_CLIENT_ID"].strip()
+    client_secret = os.environ["GOOGLE_ADS_CLIENT_SECRET"].strip()
+    refresh_token = os.environ["GOOGLE_ADS_REFRESH_TOKEN"].strip()
+
+    logger.info(
+        "Google Ads OAuth: client_id=%s...%s (len=%d)",
+        client_id[:8], client_id[-4:], len(client_id),
+    )
+
     return GoogleAdsClient.load_from_dict({
-        "developer_token": os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"],
-        "client_id": os.environ["GOOGLE_ADS_CLIENT_ID"],
-        "client_secret": os.environ["GOOGLE_ADS_CLIENT_SECRET"],
-        "refresh_token": os.environ["GOOGLE_ADS_REFRESH_TOKEN"],
-        "login_customer_id": os.environ["GOOGLE_ADS_LOGIN_CUSTOMER_ID"],
+        "developer_token": os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"].strip(),
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "refresh_token": refresh_token,
+        "login_customer_id": os.environ["GOOGLE_ADS_LOGIN_CUSTOMER_ID"].strip(),
         "use_proto_plus": True,
     })
 

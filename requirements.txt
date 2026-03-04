@@ -7,4 +7,4 @@ pandas==2.2.3
 pytz==2024.2
 anthropic>=0.42.0
 google-cloud-storage>=2.14.0
-google-ads>=29.0.0
+google-ads==29.1.0

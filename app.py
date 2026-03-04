@@ -25,18 +25,18 @@ st.set_page_config(
 )
 st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
 
-from config import get_adapters
-
-# ─── パスワード認証 ───────────────────────────────────────
-import hashlib
 # ─── Secrets → 環境変数に変換 ───────────────────────────
-import os
 try:
     for key, value in st.secrets.items():
         if isinstance(value, str):
             os.environ[key] = value
 except Exception:
     pass
+
+from config import get_adapters
+
+# ─── パスワード認証 ───────────────────────────────────────
+import hashlib
 
 def check_password():
     if "authenticated" not in st.session_state:
@@ -52,15 +52,6 @@ def check_password():
             st.error("パスワードが正しくありません")
     st.stop()
 
-# ─── Secrets → 環境変数に変換 ───────────────────────────
-import os
-try:
-    for key, value in st.secrets.items():
-        if isinstance(value, str):
-            os.environ[key] = value
-except Exception:
-    pass
-
 check_password()
 
 # ─── カスタムCSS ──────────────────────────────────────────
@@ -72,8 +63,6 @@ st.markdown("""
     div[data-testid="stMetricLabel"] > div { font-size: 0.85rem; }
 </style>
 """, unsafe_allow_html=True)
-
-from config import get_adapters
 
 
 # ─── ユーティリティ ───────────────────────────────────────
@@ -221,6 +210,53 @@ st.sidebar.markdown(
     f"**選択期間**: {date_from.strftime('%Y/%m/%d')} ~ {date_to.strftime('%Y/%m/%d')}  \n"
     f"**比較期間**: {prev_from.strftime('%Y/%m/%d')} ~ {prev_to.strftime('%Y/%m/%d')}"
 )
+
+# ─── OAuth デバッグ（一時的） ─────────────────────────────
+with st.sidebar.expander("OAuth デバッグ", expanded=False):
+    def _mask(val: str) -> str:
+        if not val:
+            return "(未設定)"
+        if len(val) <= 8:
+            return val[:2] + "***"
+        return val[:8] + "..." + val[-4:]
+
+    _cid = os.environ.get("GOOGLE_ADS_CLIENT_ID", "")
+    _csec = os.environ.get("GOOGLE_ADS_CLIENT_SECRET", "")
+    _rtok = os.environ.get("GOOGLE_ADS_REFRESH_TOKEN", "")
+    _dev = os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN", "")
+    _login = os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "")
+
+    st.code(
+        f"CLIENT_ID:        {_mask(_cid)} (len={len(_cid)})\n"
+        f"CLIENT_SECRET:    {_mask(_csec)} (len={len(_csec)})\n"
+        f"REFRESH_TOKEN:    {_mask(_rtok)} (len={len(_rtok)})\n"
+        f"DEVELOPER_TOKEN:  {_mask(_dev)} (len={len(_dev)})\n"
+        f"LOGIN_CUSTOMER_ID: {_login}\n"
+        f"YAML_CONFIG_PATH: {os.environ.get('GOOGLE_ADS_CONFIGURATION_FILE_PATH', '(未設定)')}\n"
+        f"HOME:             {os.path.expanduser('~')}\n"
+        f"google-ads.yaml存在: {os.path.exists(os.path.expanduser('~/google-ads.yaml'))}",
+        language=None,
+    )
+
+    if st.button("OAuth トークンエンドポイント検証"):
+        import requests as _req
+        try:
+            resp = _req.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "grant_type": "refresh_token",
+                    "client_id": _cid.strip(),
+                    "client_secret": _csec.strip(),
+                    "refresh_token": _rtok.strip(),
+                },
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                st.success(f"OAuth OK (access_token取得成功, expires_in={resp.json().get('expires_in')})")
+            else:
+                st.error(f"OAuth FAIL: {resp.status_code}\n{resp.text}")
+        except Exception as e:
+            st.error(f"リクエストエラー: {e}")
 
 
 # ─── KPIメトリクス表示 ────────────────────────────────────
