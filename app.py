@@ -1,3 +1,11 @@
+import os, streamlit as st
+try:
+    for key, value in st.secrets.items():
+        if isinstance(value, str):
+            os.environ[key] = value
+except Exception:
+    pass
+
 """広告ダッシュボード（Streamlit）— Meta / Google Ads"""
 
 import json
