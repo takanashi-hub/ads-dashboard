@@ -34,7 +34,7 @@ def check_password():
         return True
     pw = st.text_input("パスワードを入力してください", type="password")
     if pw:
-        if hashlib.sha256(pw.encode()).hexdigest() == hashlib.sha256("ys2026".encode()).hexdigest():
+        if hashlib.sha256(pw.encode()).hexdigest() == st.secrets.get("APP_PASSWORD_HASH", ""):
             st.session_state.authenticated = True
             st.rerun()
         else:
