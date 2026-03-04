@@ -15,6 +15,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+st.write("DEBUG CLIENT_ID:", os.environ.get("GOOGLE_ADS_CLIENT_ID", "NOT SET")[:20])
 # from config import get_adapters (lazy)
 
 # ─── ページ設定 ───────────────────────────────────────────
@@ -34,6 +35,7 @@ try:
             _os.environ[_k] = _v
 except Exception:
     pass
+st.write("DEBUG CLIENT_ID:", os.environ.get("GOOGLE_ADS_CLIENT_ID", "NOT SET")[:20])
 from config import get_adapters
 
 # ─── パスワード認証 ───────────────────────────────────────
@@ -90,6 +92,7 @@ try:
             _os.environ[_k] = _v
 except Exception:
     pass
+st.write("DEBUG CLIENT_ID:", os.environ.get("GOOGLE_ADS_CLIENT_ID", "NOT SET")[:20])
 from config import get_adapters
 
 
