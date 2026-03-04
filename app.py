@@ -1,10 +1,3 @@
-import os, streamlit as st
-try:
-    for key, value in st.secrets.items():
-        if isinstance(value, str):
-            os.environ[key] = value
-except Exception:
-    pass
 
 """広告ダッシュボード（Streamlit）— Meta / Google Ads"""
 
@@ -22,7 +15,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from config import get_adapters
+# from config import get_adapters (lazy)
 
 # ─── ページ設定 ───────────────────────────────────────────
 st.set_page_config(
@@ -32,6 +25,16 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
+
+# ─── Secrets → 環境変数 ───
+import os as _os
+try:
+    for _k, _v in st.secrets.items():
+        if isinstance(_v, str):
+            _os.environ[_k] = _v
+except Exception:
+    pass
+from config import get_adapters
 
 # ─── パスワード認証 ───────────────────────────────────────
 import hashlib
@@ -78,6 +81,16 @@ st.markdown("""
     div[data-testid="stMetricLabel"] > div { font-size: 0.85rem; }
 </style>
 """, unsafe_allow_html=True)
+
+# ─── Secrets → 環境変数 ───
+import os as _os
+try:
+    for _k, _v in st.secrets.items():
+        if isinstance(_v, str):
+            _os.environ[_k] = _v
+except Exception:
+    pass
+from config import get_adapters
 
 
 # ─── ユーティリティ ───────────────────────────────────────
