@@ -39,6 +39,9 @@ from config import get_adapters
 import hashlib
 
 def check_password():
+    # ローカル開発時はAPP_PASSWORD_HASHが空ならスキップ
+    if not st.secrets.get("APP_PASSWORD_HASH", ""):
+        return True
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     if st.session_state.authenticated:
@@ -152,6 +155,7 @@ st.sidebar.markdown("---")
 def fetch_all_data(from_str, to_str, prev_from_str, prev_to_str):
     adapters = get_adapters()
     results = {}
+    skipped = []
     for adapter in adapters:
         name = getattr(adapter, "_account_name", adapter.__class__.__name__)
         try:
@@ -162,13 +166,23 @@ def fetch_all_data(from_str, to_str, prev_from_str, prev_to_str):
                 "previous": previous,
                 "adapter": adapter,
             }
+        except RuntimeError as e:
+            err_msg = str(e)
+            if "未設定" in err_msg or "設定されていません" in err_msg:
+                skipped.append(name)
+            else:
+                results[name] = {
+                    "current": [],
+                    "previous": [],
+                    "error": err_msg,
+                }
         except Exception as e:
             results[name] = {
                 "current": [],
                 "previous": [],
                 "error": str(e),
             }
-    return results
+    return results, skipped
 
 
 def aggregate_kpis(campaigns):
@@ -199,7 +213,10 @@ prev_from_str = prev_from.strftime("%Y-%m-%d")
 prev_to_str = prev_to.strftime("%Y-%m-%d")
 
 with st.spinner("データを取得中..."):
-    all_data = fetch_all_data(from_str, to_str, prev_from_str, prev_to_str)
+    all_data, skipped_platforms = fetch_all_data(from_str, to_str, prev_from_str, prev_to_str)
+
+if skipped_platforms:
+    st.info(f"⚠️ APIキー未設定のためスキップ: {', '.join(skipped_platforms)}")
 
 # ─── プラットフォーム選択（サイドバー） ───────────────────
 platform_names = ["📊 全体"] + list(all_data.keys())

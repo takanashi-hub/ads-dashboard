@@ -150,13 +150,22 @@ def _format_locations(geo: dict) -> str:
 
 
 class MetaAdsAdapter(AdsAdapter):
-    """Meta Marketing API アダプター"""
+    """Meta Marketing API アダプター（複数アカウント対応）"""
+
+    def __init__(self, account_id: str = "", account_name: str = "Meta広告"):
+        self._account_id = account_id
+        self._account_name = account_name
 
     def platform_name(self) -> str:
-        return "Meta広告"
+        return self._account_name
+
+    def _resolve_account_id(self) -> str:
+        if self._account_id:
+            return self._account_id
+        return _get_account_id()
 
     def fetch_campaigns(self, date_from: str, date_to: str) -> list[dict]:
-        account_id = _get_account_id()
+        account_id = self._resolve_account_id()
         fields = METRIC_FIELDS + ["campaign_id", "campaign_name"]
 
         data = _api_get(
@@ -179,7 +188,7 @@ class MetaAdsAdapter(AdsAdapter):
         return results
 
     def fetch_daily_metrics(self, date_from: str, date_to: str) -> list[dict]:
-        account_id = _get_account_id()
+        account_id = self._resolve_account_id()
 
         data = _api_get(
             f"{account_id}/insights",
@@ -200,7 +209,7 @@ class MetaAdsAdapter(AdsAdapter):
         return results
 
     def fetch_adsets(self, campaign_id: str, date_from: str, date_to: str) -> list[dict]:
-        account_id = _get_account_id()
+        account_id = self._resolve_account_id()
         fields = METRIC_FIELDS + ["adset_id", "adset_name"]
 
         data = _api_get(
@@ -224,7 +233,7 @@ class MetaAdsAdapter(AdsAdapter):
         return results
 
     def fetch_ads(self, adset_id: str, date_from: str, date_to: str) -> list[dict]:
-        account_id = _get_account_id()
+        account_id = self._resolve_account_id()
         fields = METRIC_FIELDS + ["ad_id", "ad_name"]
 
         data = _api_get(
@@ -248,7 +257,7 @@ class MetaAdsAdapter(AdsAdapter):
         return results
 
     def fetch_all_adsets(self, date_from: str, date_to: str) -> list[dict]:
-        account_id = _get_account_id()
+        account_id = self._resolve_account_id()
         fields = METRIC_FIELDS + ["adset_id", "adset_name", "campaign_name"]
 
         data = _api_get(
@@ -272,7 +281,7 @@ class MetaAdsAdapter(AdsAdapter):
         return results
 
     def fetch_all_ads(self, date_from: str, date_to: str) -> list[dict]:
-        account_id = _get_account_id()
+        account_id = self._resolve_account_id()
         fields = METRIC_FIELDS + ["ad_id", "ad_name", "campaign_name", "adset_name"]
 
         data = _api_get(
@@ -297,7 +306,7 @@ class MetaAdsAdapter(AdsAdapter):
         return results
 
     def fetch_age_gender_breakdown(self, date_from: str, date_to: str) -> list[dict]:
-        account_id = _get_account_id()
+        account_id = self._resolve_account_id()
 
         data = _api_get(
             f"{account_id}/insights",
@@ -319,7 +328,7 @@ class MetaAdsAdapter(AdsAdapter):
         return results
 
     def fetch_region_breakdown(self, date_from: str, date_to: str) -> list[dict]:
-        account_id = _get_account_id()
+        account_id = self._resolve_account_id()
 
         data = _api_get(
             f"{account_id}/insights",
@@ -340,7 +349,7 @@ class MetaAdsAdapter(AdsAdapter):
         return results
 
     def fetch_frequency(self, date_from: str, date_to: str) -> dict:
-        account_id = _get_account_id()
+        account_id = self._resolve_account_id()
 
         data = _api_get(
             f"{account_id}/insights",

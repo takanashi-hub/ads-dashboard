@@ -53,22 +53,39 @@ def _validate_refresh_token(client_id: str, client_secret: str, refresh_token: s
         raise RuntimeError(f"OAuth エラー: {error} — {desc}")
 
 
-def _get_client() -> GoogleAdsClient:
-    """環境変数からGoogle Ads APIクライアントを生成"""
-    required = [
-        "GOOGLE_ADS_DEVELOPER_TOKEN",
-        "GOOGLE_ADS_CLIENT_ID",
-        "GOOGLE_ADS_CLIENT_SECRET",
-        "GOOGLE_ADS_REFRESH_TOKEN",
-        "GOOGLE_ADS_LOGIN_CUSTOMER_ID",
-    ]
-    missing = [k for k in required if not os.environ.get(k)]
+def _get_client(credential_set: dict = None) -> GoogleAdsClient:
+    """OAuth認証情報セットからGoogle Ads APIクライアントを生成"""
+    if credential_set is None:
+        credential_set = {
+            "client_id_env": "GOOGLE_ADS_CLIENT_ID",
+            "client_secret_env": "GOOGLE_ADS_CLIENT_SECRET",
+            "refresh_token_env": "GOOGLE_ADS_REFRESH_TOKEN",
+            "login_customer_id_env": "GOOGLE_ADS_LOGIN_CUSTOMER_ID",
+        }
+
+    client_id = os.environ.get(credential_set["client_id_env"], "").strip()
+    client_secret = os.environ.get(credential_set["client_secret_env"], "").strip()
+    refresh_token = os.environ.get(credential_set["refresh_token_env"], "").strip()
+    # アカウント固有のlogin_customer_idがあればそちらを使う
+    if "login_customer_id_override" in credential_set:
+        login_customer_id = credential_set["login_customer_id_override"]
+    else:
+        login_customer_id = os.environ.get(credential_set["login_customer_id_env"], "").strip()
+    developer_token = os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN", "").strip()
+
+    missing = []
+    if not developer_token:
+        missing.append("GOOGLE_ADS_DEVELOPER_TOKEN")
+    if not client_id:
+        missing.append(credential_set["client_id_env"])
+    if not client_secret:
+        missing.append(credential_set["client_secret_env"])
+    if not refresh_token:
+        missing.append(credential_set["refresh_token_env"])
+    if not login_customer_id:
+        missing.append(credential_set["login_customer_id_env"])
     if missing:
         raise RuntimeError(f"環境変数が未設定: {', '.join(missing)}")
-
-    client_id = os.environ["GOOGLE_ADS_CLIENT_ID"].strip()
-    client_secret = os.environ["GOOGLE_ADS_CLIENT_SECRET"].strip()
-    refresh_token = os.environ["GOOGLE_ADS_REFRESH_TOKEN"].strip()
 
     logger.info(
         "Google Ads OAuth: client_id=%s...%s (len=%d)",
@@ -79,11 +96,11 @@ def _get_client() -> GoogleAdsClient:
     _validate_refresh_token(client_id, client_secret, refresh_token)
 
     return GoogleAdsClient.load_from_dict({
-        "developer_token": os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"].strip(),
+        "developer_token": developer_token,
         "client_id": client_id,
         "client_secret": client_secret,
         "refresh_token": refresh_token,
-        "login_customer_id": os.environ["GOOGLE_ADS_LOGIN_CUSTOMER_ID"].strip(),
+        "login_customer_id": login_customer_id,
         "use_proto_plus": True,
     })
 
@@ -125,15 +142,16 @@ def _safe_div(a: float, b: float) -> float:
 class GoogleAdsAdapter(AdsAdapter):
     """Google Ads API アダプター"""
 
-    def __init__(self, customer_id: str = None, account_name: str = None):
+    def __init__(self, customer_id: str = None, account_name: str = None, credential_set: dict = None):
         self._client: Optional[GoogleAdsClient] = None
         self._customer_id_override = customer_id
         self._account_name = account_name or "Google広告"
+        self._credential_set = credential_set
 
     @property
     def client(self) -> GoogleAdsClient:
         if self._client is None:
-            self._client = _get_client()
+            self._client = _get_client(self._credential_set)
         return self._client
 
     @property
