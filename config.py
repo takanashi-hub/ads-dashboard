@@ -37,6 +37,12 @@ GOOGLE_ADS_CREDENTIAL_SETS = {
         "refresh_token_env": "GOOGLE_ADS_REFRESH_TOKEN_SAT",
         "login_customer_id_env": "GOOGLE_ADS_LOGIN_CUSTOMER_ID_SAT",
     },
+    "sueen": {
+        "client_id_env": "GOOGLE_ADS_CLIENT_ID_SAT",
+        "client_secret_env": "GOOGLE_ADS_CLIENT_SECRET_SAT",
+        "refresh_token_env": "GOOGLE_ADS_REFRESH_TOKEN_SUEEN",
+        "login_customer_id_env": "GOOGLE_ADS_LOGIN_CUSTOMER_ID_SUEEN",
+    },
 }
 
 # Google広告 マルチアカウント設定
@@ -50,7 +56,7 @@ GOOGLE_ADS_ACCOUNTS = {
     "5627644401": {"name": "Google広告（おてて）", "credentials": "default"},
     "6230156344": {"name": "Google広告（KADASONサテライト）", "credentials": "satellite", "login_customer_id": "6230156344"},
     "3104136786": {"name": "Google広告（おててサブ（サテライト））", "credentials": "satellite", "login_customer_id": "3104136786"},
-    "7405249147": {"name": "Google広告（Sueen）", "credentials": "satellite", "login_customer_id": "7405249147"},
+    "3094533291": {"name": "Google広告（Sueen）", "credentials": "sueen", "login_customer_id": "3094533291"},
 }
 
 ADAPTER_MAP = {
