@@ -50,6 +50,7 @@ GOOGLE_ADS_ACCOUNTS = {
     "5627644401": {"name": "Google広告（おてて）", "credentials": "default"},
     "6230156344": {"name": "Google広告（KADASONサテライト）", "credentials": "satellite", "login_customer_id": "6230156344"},
     "3104136786": {"name": "Google広告（おててサブ（サテライト））", "credentials": "satellite", "login_customer_id": "3104136786"},
+    "7405249147": {"name": "Google広告（Sueen）", "credentials": "satellite", "login_customer_id": "7405249147"},
 }
 
 ADAPTER_MAP = {
